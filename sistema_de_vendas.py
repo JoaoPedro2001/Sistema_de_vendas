@@ -3,13 +3,17 @@ from tkinter import ttk
 from tkinter import messagebox
 
 # Cardápio com nome e preco dos items
-
 menu = {
-    "Pizza de calabresa": 35.00,
-    "Hamburguer": 20.00,
-    "Suco Natural": 8.00,
-    "Salada": 15.00,
-    "Coca-Cola": 5.00
+    "Comida":{
+        "Salada": 15.00,
+        "Hamburguer": 20.00,
+        "Pizza de calabresa": 35.00
+    },
+    "Bebida":{
+        "Água Mineral": 3.00,
+        "Coca-Cola": 5.00,
+        "Suco Natural": 8.00
+    }
 }
 
 # Carrinho de compras, inicialmente vazio
@@ -23,21 +27,33 @@ def add_to_cart(item, price):
         cart[item] = 1 # Caso contrário, adicionar o item ao carrinho com quantidade 1
     update_cart_display()
 
-# FUnção para atualizar a exibição do carrinho
+# Função para atualizar a exibição do carrinho
 def update_cart_display():
     cart_display.delete(1.0, END) # limpa a tela antes de atualizar
     total = 0
-    for item, quantity in cart.items():
-        total += menu[item] * quantity
-        cart_display.insert(END, f"{item} x {quantity} - R$ {menu[item] * quantity:.2f}\n")
+
+    for item_type, item_option in menu.items():
+        for item, price in item_option.items():
+            for chosen_item, quantity in cart.items():
+                if item == chosen_item:
+                    total += price * quantity
+                    cart_display.insert(END, f"{item} x {quantity} - R$ {price * quantity:.2f}\n")
+
     cart_display.insert(END, f"\nTotal: R$ {total:.2f}")
 
 # Função para finalizar a compra
 def checkout():
+    total = 0
     if not cart:
         messagebox.showwarning("Carrinho Vazio", "Adicione items ao carrinho antes de finalizar.")
         return
-    total = sum(menu[item] * quantity for item, quantity in cart.items())
+    
+    for item_type, item_option in menu.items():
+        for item, price in item_option.items():
+            for chosen_item, quantity in cart.items():
+                if item == chosen_item:
+                    total += price * quantity
+    
     messagebox.showinfo("Compra finalizada", f"Compra realizada com sucesso!\nTotal: R$ {total:.2f}")
     cart.clear() # Limpa o carrinho após finalizar
     update_cart_display() # Atualiza a exibição do carrinho
@@ -47,11 +63,50 @@ def remove_from_cart():
     cart.clear()
     update_cart_display()
 
+# Função para retornar ao menu principal do cardápio
+def return_to_main():
+    if frame_comida.winfo_viewable():
+        frame_comida.pack_forget()
+
+    elif frame_bebida.winfo_viewable():
+        frame_bebida.pack_forget()
+
+    menu_frame.pack(pady=10, before=cart_frame)
+
+# Função para acessar os submenus do cardápio
+def acess_submenu_buttons(item_type, item_option):
+    menu_frame.pack_forget()
+    
+    if item_type == "Comida":
+        frame_comida.pack(pady=10, before=cart_frame)
+
+    elif item_type == "Bebida":
+        frame_bebida.pack(pady=10, before=cart_frame)
+
+# Função para criar os botões dos submenus do cardápio
+def create_submenu_buttons(frame1, frame2):
+    for item_type, item_option in menu.items():
+        if item_type == "Comida":
+            for item, price in item_option.items():
+                bt = ttk.Button(frame1, text=f"Adicionar {item} - R$ {price:.2f}", command=lambda item=item, price=price: add_to_cart(item, price))
+                bt.pack(fill=X, padx=5, pady=5)
+
+            return_bt = ttk.Button(frame1, text="Voltar", command=return_to_main)
+            return_bt.pack(fill=X, padx=5, pady=5)
+        
+        elif item_type == "Bebida":
+            for item, price in item_option.items():
+                bt = ttk.Button(frame2, text=f"Adicionar {item} - R$ {price:.2f}", command=lambda item=item, price=price: add_to_cart(item, price))
+                bt.pack(fill=X, padx=5, pady=5)
+
+            return_bt = ttk.Button(frame2, text="Voltar", command=return_to_main)
+            return_bt.pack(fill=X, padx=5, pady=5)
+
 # Função para criar os botões e adicionar ao carrinho para cada item
 def create_menu_buttons(frame):
-    for item, price in menu.items():
-        button = ttk.Button(frame, text=f"Adicionar {item} - R$ {price:.2f}", command=lambda item=item, price=price: add_to_cart(item, price))
-        button.pack(fill=X, padx=5, pady=5)
+    for item_type, item_option in menu.items():
+        bt = ttk.Button(frame, text=f"Cardápio de {item_type}", command=lambda item_type=item_type, item_option=item_option: acess_submenu_buttons(item_type, item_option))
+        bt.pack(fill=X, padx=5, pady=5)
 
 # Configuração da interface gráfica (GUI)
 root = Tk()
@@ -61,6 +116,10 @@ root.geometry("500x500")
 # Frame para o cardápio
 menu_frame = Frame(root)
 menu_frame.pack(pady=10)
+
+# Frames para os submenus do cardápio
+frame_comida = Frame(root)
+frame_bebida = Frame(root)
 
 # Frame para o carrinho
 cart_frame = Frame(root)
@@ -83,5 +142,8 @@ cancel_button.pack()
 
 # Criação dos botões do cardápio
 create_menu_buttons(menu_frame)
+
+# Criação dos botões dos submenus do cardápio
+create_submenu_buttons(frame_comida, frame_bebida)
 
 root.mainloop()
