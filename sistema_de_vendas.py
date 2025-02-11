@@ -1,6 +1,8 @@
 from tkinter import *
 from tkinter import ttk
 from tkinter import messagebox
+from datetime import * # Biblioteca usada para a deficição de data e hora
+from os import startfile # Biblioteca de interação com o sistema operacional (usada para abrir o notepad)
 
 # Cardápio com nome e preço dos items
 menu = {
@@ -65,6 +67,27 @@ def update_cart_display():
 
     cart_display.insert(END, f"\nTotal: R$ {total:.2f}")
 
+# Função para a geração do recibo
+def gererate_receipt():
+    total = 0
+    agora_string = datetime.now().strftime("%Y-%m-%d_%H-%M-%S") # Definição da data e momento em que o recibo é gerado
+    archive_name = f"Recibo_{agora_string}.txt" # definição do nome identificador do recibo
+    receipt = open(archive_name,"w")
+    
+    # Criação do recibo em arquivo .txt
+    receipt.write("Recibo:\n\n")
+    for item_type, item_option in menu.items():
+        for item, price in item_option.items():
+            for chosen_item, quantity in cart.items():
+                if item == chosen_item:
+                    total += price * quantity
+                    receipt.write(f"{item} x {quantity} - R$ {price * quantity:.2f}\n")
+        
+    receipt.write(f"\nTotal: R$ {total:.2f}")
+    receipt.close()
+
+    startfile(archive_name) # Abertura do recibo pelo Notepad
+    
 # Função para finalizar a compra
 def checkout():
     total = 0
@@ -80,6 +103,7 @@ def checkout():
                     total += price * quantity
     
     messagebox.showinfo("Compra finalizada", f"Compra realizada com sucesso!\nTotal: R$ {total:.2f}")
+    gererate_receipt()
     cart.clear() # Limpa o carrinho após finalizar
     update_cart_display() # Atualiza a exibição do carrinho
 
@@ -177,8 +201,8 @@ def create_menu_buttons(frame):
 
 # Configuração da interface gráfica (GUI)
 root = Tk()
-root.title("Sistema de Vendas - Restaurante/Lanchonete")
-root.geometry("500x600+250+50")
+root.title("Sistema de Vendas - Lanchonete")
+root.geometry("500x600")
 root.resizable(False, False)
 
 # Frame para o cardápio
