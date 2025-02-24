@@ -1,0 +1,224 @@
+from tkinter import *
+from tkinter import ttk
+from tkinter import messagebox
+from datetime import *
+from os import startfile
+
+# Cardápio com mais categorias
+menu = {
+    "Sanduíches": {
+        "Cachorro Quente": 12.00,
+        "X-Burger": 15.00,
+        "X-Salada": 17.00,
+        "X-Bacon": 20.00,
+        "X-Tudo": 25.00
+    },
+    "Acompanhamentos": {
+        "Batata Frita (Pequena)": 8.00,
+        "Batata Frita (Média)": 12.00,
+        "Batata Frita (Grande)": 14.00
+    },
+    "Bebidas Geladas": {
+        "Água Mineral (Sem Gás)": 3.00,
+        "Água Mineral (Com Gás)": 3.50,
+        "Refrigerante (Lata)": 5.00,
+        "Refrigerante (600ml)": 9.00,
+        "Suco Natural": 8.00,
+        "Energético": 14.00,
+        "Chá Gelado": 7.50
+    },
+    "Bebidas Quentes": {
+        "Café Expresso": 5.00,
+        "Chá Quente": 6.00,
+        "Cappuccino": 9.00,
+        "Chocolate Quente": 12.00
+    },
+    "Sobremesas": {
+        "Casquinha de Sorvete": 6.00,
+        "Sundae": 12.00,
+        "Milkshake": 16.00,
+        "Brownie com Sorvete": 18.00
+    },
+    "Saladas": {  # Nova categoria
+        "Salada Caesar": 15.00,
+        "Salada de Frango": 18.00,
+        "Salada Vegana": 14.00
+    },
+    "Massas": {  # Nova categoria
+        "Macarrão à Bolonhesa": 22.00,
+        "Macarrão Alfredo": 20.00,
+        "Lasagna": 25.00
+    }
+}
+
+# Carrinho de compras
+cart = {}
+paid_amount = 0  # Para armazenar o valor pago
+
+# Função para adicionar um item ao carrinho
+def add_to_cart(item, price):
+    if item in cart:
+        cart[item] += 1  # Se o item já estiver no carrinho, aumenta a quantidade
+    else:
+        cart[item] = 1  # Caso contrário, adicionar o item ao carrinho com quantidade 1
+    update_cart_display()
+
+# Função para atualizar a exibição do carrinho
+def update_cart_display():
+    cart_display.delete(1.0, END)  # Limpar a tela antes de atualizar
+    total = 0
+    for item, quantity in cart.items():  # Passando diretamente pelo carrinho
+        for item_type, item_option in menu.items():
+            if item in item_option:  # Verificar se o item está no cardápio
+                price = item_option[item]
+                total += price * quantity
+                cart_display.insert(END, f"{item} x {quantity} - R$ {price * quantity:.2f}\n")
+    cart_display.insert(END, f"\nTotal: R$ {total:.2f}")
+
+# Função para calcular o troco
+def calculate_change():
+    global paid_amount
+    total = 0
+    for item, quantity in cart.items():  # Calculando o total da compra
+        for item_type, item_option in menu.items():
+            if item in item_option:
+                total += item_option[item] * quantity
+    
+    try:
+        paid_amount = float(paid_amount_entry.get())  # Valor pago
+        if paid_amount < total:
+            messagebox.showwarning("Erro", "O valor pago é insuficiente.")
+        else:
+            change = paid_amount - total  # Calculando o troco
+            messagebox.showinfo("Troco", f"O troco é: R$ {change:.2f}")
+    except ValueError:
+        messagebox.showwarning("Erro", "Por favor, insira um valor válido.")
+
+# Função para a geração do recibo
+def generate_receipt(change=None):
+    global paid_amount
+    total = 0
+    now_string = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    archive_name = f"Recibo_{now_string}.txt"
+    receipt = open(archive_name, "w")
+    receipt.write("Recibo:\n\n")
+    for item, quantity in cart.items():
+        for item_type, item_option in menu.items():
+            if item in item_option:
+                price = item_option[item]
+                total += price * quantity
+                receipt.write(f"{item} x {quantity} - R$ {price * quantity:.2f}\n")
+    
+    receipt.write(f"\nTotal: R$ {total:.2f}")
+    receipt.write(f"\nPago: R$ {paid_amount:.2f}\n") 
+    if change is not None:
+        receipt.write(f"Troco: R$ {change:.2f}\n")
+    
+    receipt.close()
+    startfile(archive_name)  # Abertura do recibo pelo Notepad
+
+# Função para finalizar a compra
+def checkout():
+    global paid_amount
+    total = 0
+    if not cart:
+        messagebox.showwarning("Carrinho Vazio", "Adicione itens ao carrinho antes de finalizar.")
+        return
+    
+    for item, quantity in cart.items():
+        for item_type, item_option in menu.items():
+            if item in item_option:
+                total += item_option[item] * quantity
+    
+    # Calculando o troco antes de gerar o recibo
+    if paid_amount < total:
+        messagebox.showwarning("Erro", "O valor pago é insuficiente.")
+        return
+
+    change = paid_amount - total  # Calculando o troco
+    messagebox.showinfo("Compra finalizada", f"Compra realizada com sucesso!\nTotal: R$ {total:.2f}")
+    
+    generate_receipt(change)  # Passando o troco para o recibo
+    cart.clear()  # Limpa o carrinho após finalizar
+    update_cart_display()  # Atualiza a exibição do carrinho
+
+# Função para remover todos os itens do carrinho
+def remove_from_cart():
+    cart.clear()
+    update_cart_display()
+
+# Função para retornar ao menu principal do cardápio
+def return_to_main():
+    for frame in submenu_frames.values():
+        frame.pack_forget()  # Esconde todos os frames de submenu
+
+    menu_frame.pack(pady=10, before=cart_frame)  # Volta para o menu principal
+
+# Função para acessar os submenus do menu
+def acess_submenu_buttons(item_type):
+    menu_frame.pack_forget()  # Esconde o menu principal
+    frame = submenu_frames[item_type]
+    frame.pack(pady=10, before=cart_frame)  # Exibe o submenu correspondente
+
+# Função para criar os botões dos submenus do cardápio
+def create_submenu_buttons():
+    for item_type, item_option in menu.items():
+        frame = submenu_frames[item_type]
+        for item, price in item_option.items():
+            bt = ttk.Button(frame, text=f"Adicionar {item} - R$ {price:.2f}", command=lambda item=item, price=price: add_to_cart(item, price))
+            bt.pack(fill=X, padx=5, pady=5)
+        return_bt = ttk.Button(frame, text="Voltar", command=return_to_main)
+        return_bt.pack(fill=X, padx=5, pady=5)
+
+# Função para criar os botões do cardápio
+def create_menu_buttons(frame):
+    for item_type in menu:
+        bt = ttk.Button(frame, text=f"Cartão de {item_type}", command=lambda item_type=item_type: acess_submenu_buttons(item_type))
+        bt.pack(fill=X, padx=5, pady=5)
+
+# Configuração da interface gráfica
+root = Tk()
+root.title("Sistema de Vendas - Lanchonete")
+root.geometry("500x600")
+root.resizable(False, False)
+
+# Frame para o carrinho
+cart_frame = Frame(root)
+cart_frame.pack(pady=10)
+cart_label = ttk.Label(cart_frame, text="Carrinho de Compras", font=("Arial", 14))
+cart_label.pack()
+
+# Exibição do carrinho
+cart_display = Text(cart_frame, height=10, width=40)
+cart_display.pack()
+
+# Entrada de valor pago
+paid_amount_label = ttk.Label(cart_frame, text="Valor Pago (R$):")
+paid_amount_label.pack()
+paid_amount_entry = ttk.Entry(cart_frame)
+paid_amount_entry.pack()
+
+# Botões de finalizar a compra, cancelar e calcular troco
+checkout_button = ttk.Button(cart_frame, text="Finalizar Compra", command=checkout)
+checkout_button.pack(pady=10)
+cancel_button = ttk.Button(cart_frame, text="Cancelar Compra", command=remove_from_cart)
+cancel_button.pack()
+change_button = ttk.Button(cart_frame, text="Calcular Troco", command=calculate_change)
+change_button.pack(pady=5)
+
+# Frame para o menu principal
+menu_frame = Frame(root)
+menu_frame.pack(padx=10, pady=10)
+
+# Criação dos botões do cardápio
+create_menu_buttons(menu_frame)
+
+# Frames para os submenus do cardápio
+submenu_frames = {}
+for item_type in menu:
+    submenu_frames[item_type] = Frame(root)
+
+# Criação dos botões dos submenus
+create_submenu_buttons()
+
+root.mainloop()
